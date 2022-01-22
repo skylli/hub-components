@@ -1,7 +1,7 @@
 <!--
  * @Author: your name
  * @Date: 2022-01-20 16:58:53
- * @LastEditTime: 2022-01-22 10:15:50
+ * @LastEditTime: 2022-01-22 13:48:47
  * @LastEditors: Please set LastEditors
  * @Description: 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  * @FilePath: \zwavejs2mqtt-master\src\components\hub\typeSwitch.vue
@@ -12,14 +12,14 @@
       <v-switch
         v-model="val.isOn"
         :loading="val.processing"
-        @click="switchClick(val.id)"
+        @click="switchClick(key)"
       >
       </v-switch>
     </v-list-item>
   </div>
 </template>
 <script>
-import { mapGetters } from "vuex"
+import { stringify } from "querystring"
 
 export default {
   props: {
@@ -28,32 +28,33 @@ export default {
   data () {
     return {
       buttonState: this.buttoninit(),
-      b2: {},
     }
   },
   computed: {
-    ...mapGetters(["hubDevices", "elements", "elementMap"]),
-
     state () {
       const s = []
+      let i = 0
       // // todo cancel timer
+      console.log("state change: ", this.switchElements)
       for (const ele of this.switchElements) {
         if (
-          typeof this.buttonState[ele.id] === "object" &&
-          this.buttonState[ele.id].type == "clieked"
+          typeof this.buttonState[i] === "object" &&
+          this.buttonState[i].type == "clieked"
         ) {
-          s.push(this.buttonState[ele.id])
+          s.push(this.buttonState[i])
+          console.log("show button ")
         } else {
           const currentState = {
             id: ele.id,
             type: "update",
-            isOn: ele.state === "on" ? true : false,
+            isOn: ele.value.state === "on" ? true : false,
             processing: false,
           }
-          if (this.buttonState[ele.id].timer != 0) {
-            clearTimeout(this.buttonState[ele.id].timer)
+          if (this.buttonState[i].timer != 0) {
+            clearTimeout(this.buttonState[i].timer)
           }
           s.push(currentState)
+          console.log("show device: ", currentState)
         }
       }
       return s
@@ -62,15 +63,15 @@ export default {
   created () { },
   methods: {
     buttoninit () {
-      const s = {}
+      const s = []
       for (const ele of this.switchElements) {
-        s[ele.id] = {
+        s.push({
           id: ele.id,
           type: "init",
           isOn: ele.state === "on" ? true : false,
           processing: false,
           timer: 0,
-        }
+        })
       }
       return s
     },
@@ -79,7 +80,7 @@ export default {
       this.buttonState[index].processing = "red"
       this.buttonState[index].type = "clieked"
       this.buttonState[index].isOn =
-        this.elements[this.elementMap.get(index)] === "on" ? false : true
+        this.switchElements[index].value.state === "on" ? false : true
       this.buttonState[index].timer = setTimeout(
         function (index) {
           this.buttonState[index].type = "timeout"
